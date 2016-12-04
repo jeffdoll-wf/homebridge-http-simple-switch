@@ -7,7 +7,7 @@ module.exports = function (homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
     homebridge.registerAccessory("homebridge-http-simple-switch", "SimpleHttpSwitch", SimpleHttpSwitch);
-}
+};
 
 
 function SimpleHttpSwitch(log, config) {
@@ -19,6 +19,34 @@ function SimpleHttpSwitch(log, config) {
     this.sendimmediately = config["sendimmediately"];
     this.default_state_off = config["default_state_off"];
     this.name = config["name"];
+}
+
+function parseStateResponse(body, deviceID)
+{
+    var doorState = null;
+    var x = body.split('\n')[4];
+    var statuses = x.substring(0, x.length - 9).split(",");
+    var l = statuses.length;
+    for (var i = 0; i < l; i++)
+    {
+        if (statuses[i].indexOf(deviceID) >= 0)
+        {
+            var state = statuses[i].split("|")[1];
+            if (state == "0")
+            {
+                doorState = "closed";
+            }
+            else if (state == "1")
+            {
+                doorState = "open";
+            }
+            else
+            {
+                doorState = "moving";
+            }
+        }
+    }
+    return doorState;
 }
 
 SimpleHttpSwitch.prototype = {
@@ -43,17 +71,16 @@ SimpleHttpSwitch.prototype = {
         var body;
 
 		var res = request(this.http_method, this.url, {});
-		if(res.statusCode > 400){
+		if (res.statusCode > 400) {
 			this.log('HTTP power function failed');
 			callback(error);
-		}else{
+		} else {
 			this.log('HTTP power function succeeded!');
-            var info = JSON.parse(res.body);
-            this.log(res.body);
-            this.log(info);
+//            var info = JSON.parse(res.body);
+//            this.log(res.body);
+//            this.log(info);
 			callback();
 		}
-
     },
 
     identify: function (callback) {
